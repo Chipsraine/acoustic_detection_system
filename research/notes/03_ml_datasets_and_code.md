@@ -186,7 +186,48 @@
 
 ---
 
-## 7. Рекомендуемый план экспериментов
+## 7. Few-shot Learning для акустической идентификации
+
+> Ключевой метод диссертации — см. dissertation/concept.md
+
+### 7.1 Зачем few-shot?
+
+Проблема: для нового класса объектов (новая модель дрона, редкое животное) размеченных аудиозаписей единицы. Стандартный fine-tune требует 100+ примеров, few-shot — 5–20.
+
+### 7.2 Prototypical Networks (основной метод)
+
+```
+Обучение (эпизоды N-way K-shot):
+  - N классов, K примеров на класс → прототип класса = среднее эмбеддингов
+  - Query sample → ближайший прототип (косинусное сходство) → класс
+
+Инференс с новым классом:
+  - 5–20 записей нового объекта → вычислить прототип → добавить в пространство
+```
+
+### 7.3 Backbone для few-shot
+
+| Модель | Параметры | AudioSet mAP | Рекомендация |
+|--------|-----------|--------------|--------------|
+| PANNs CNN14 | 80M | 0.431 | Лучший backbone |
+| YAMNet | 3.7M | 0.306 | Быстрый, для edge |
+| BEATs | 90M | 0.448 | State-of-the-art |
+
+**Рекомендация:** PANNs CNN14 как backbone (заморозить), Prototypical Net как голова.
+
+### 7.4 GitHub-репозитории для few-shot audio
+
+- `jakesnell/prototypical-networks` — оригинальная реализация (PyTorch)
+- `oscarknagg/few-shot` — few-shot для аудио и изображений
+- `qiuqiangkong/panns_inference` — PANNs как feature extractor
+
+### 7.5 Датасеты для мета-обучения
+
+Стратегия: предобучить backbone на AudioSet → мета-обучить few-shot голову на ESC-50 + UrbanSound8K (много классов для эпизодов) → тестировать на дроновых датасетах (AIRA-UAS, MUADD).
+
+---
+
+## 8. Рекомендуемый план экспериментов
 
 1. **Baseline**: SVM/Random Forest + MFCC (быстрый старт)
 2. **CNN**: MobileNetV2 + мел-спектрограммы (основная модель)
@@ -203,5 +244,5 @@ librosa (feature extraction)
 pyroomacoustics (beamforming, DOA)
 TFLite / ONNX Runtime (edge deployment)
 Weights & Biases / MLflow (эксперименты)
-Датасет: AIRA-UAS + ESC-50 + AudioSet embeddings
+Датасет: AudioSet (предобучение) → ESC-50 + UrbanSound8K (мета-обучение) → AIRA-UAS + MUADD (тест)
 ```
